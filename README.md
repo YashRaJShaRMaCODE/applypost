@@ -2,7 +2,7 @@
 
 **A local-first Gmail → Google Sheets tracker for job-related email.**
 
-[Open the product site](https://yashrajsharmacode.github.io/JobMail-tracker/) · [Run the script](#run-the-script) · [Review privacy and OAuth](#oauth-flow-explanation)
+[Open the product site](https://yashrajsharmacode.github.io/applypost/) · [Run the script](#run-the-script) · [Review privacy and OAuth](#oauth-flow-explanation)
 
 ---
 
@@ -10,7 +10,7 @@
 
 JobMail is a Python automation tool that connects to the **Gmail API** and **Google Sheets API** through **OAuth 2.0**. It runs on your computer; the companion product site is static and uses fictional sample messages only.
 
-The [JobMail product site](https://yashrajsharmacode.github.io/JobMail-tracker/) is a static overview. Its sample sorter can reveal and copy fictional spreadsheet-ready rows so you can review the output shape; it does not connect to Gmail or Sheets and contains no real email data.
+The [JobMail product site](https://yashrajsharmacode.github.io/applypost/) is a static overview. Its sample sorter can reveal and copy fictional spreadsheet-ready rows so you can review the output shape; it does not connect to Gmail or Sheets and contains no real email data.
 
 ## Paid setup support
 
