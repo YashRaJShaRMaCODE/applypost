@@ -1,20 +1,25 @@
 import argparse
 import csv
-from datetime import datetime
-import sys
 import os
+import sys
+from contextlib import nullcontext
+from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from gmail_service import MAX_UNREAD_MESSAGES, get_gmail_service, get_unread_messages
+from config import SHEET_NAME, SPREADSHEET_ID, STORE_EMAIL_BODY
 from email_parser import parse_email
-from sheets_service import get_sheets_service, append_row, get_logged_message_ids
-from state_manager import (
-    load_state, save_state, is_processed, mark_processed,
-    mark_pending, clear_pending,
-)
-from config import SPREADSHEET_ID, SHEET_NAME, STORE_EMAIL_BODY
+from gmail_service import MAX_UNREAD_MESSAGES, get_gmail_service, get_unread_messages
 from logger import logger
+from sheets_service import append_row, get_logged_message_ids, get_sheets_service
+from state_manager import (
+    clear_pending,
+    is_processed,
+    load_state,
+    mark_pending,
+    mark_processed,
+    save_state,
+)
 
 
 def parse_batch_size(value):
@@ -89,8 +94,7 @@ def is_blocked_sender(sender):
 def preview_messages(gmail_service, messages, state, export_path=None, extra_keywords=()):
     seen_ids = set()
     matched = filtered = already_processed = pending = blocked_senders = no_job_signal = 0
-    output = open(export_path, "w", newline="", encoding="utf-8") if export_path else None
-    try:
+    with (open(export_path, "w", newline="", encoding="utf-8") if export_path else nullcontext()) as output:
         writer = csv.writer(output) if output else None
         if writer:
             writer.writerow(["From", "Subject", "Date", "Content", "Gmail message ID"])
@@ -119,9 +123,6 @@ def preview_messages(gmail_service, messages, state, export_path=None, extra_key
                 values = [email_data["from"], email_data["subject"], email_data["date"],
                           email_data["content"][:1000] if STORE_EMAIL_BODY else "", message_id]
                 writer.writerow([f"'{value}" if str(value).startswith(("=", "+", "-", "@", "\t", "\r")) else value for value in values])
-    finally:
-        if output:
-            output.close()
     return matched, filtered, already_processed, pending, blocked_senders, no_job_signal
 
 
@@ -201,6 +202,12 @@ def main(
         return
 
     try:
+        state = load_state()
+    except (TypeError, ValueError) as exc:
+        logger.error("Cannot use the local checkpoint: %s", exc)
+        return
+
+    try:
         gmail_service = get_gmail_service(read_only=dry_run)
         sheets_service = None if dry_run else get_sheets_service()
     except FileNotFoundError:
@@ -214,7 +221,6 @@ def main(
         messages = get_unread_messages(gmail_service, max_results=max_results, since=since)
     else:
         messages = get_unread_messages(gmail_service, max_results=max_results)
-    state = load_state()
     if not messages and not state["pending_ids"] and not (dry_run and export_csv):
         logger.info("No new unread emails found.")
         return

@@ -26,14 +26,14 @@ class StateManagerTests(unittest.TestCase):
             self.assertEqual(loaded["pending_ids"], {"pending-id"})
 
     def test_rejects_corrupt_or_invalid_state_without_resetting_checkpoint(self):
-        for contents in ("{", "[]", '{"processed_ids": "message-id"}'):
+        cases = (("{", ValueError), ("[]", TypeError), ('{"processed_ids": "message-id"}', ValueError))
+        for contents, exception in cases:
             with self.subTest(contents=contents), tempfile.TemporaryDirectory(dir=os.getcwd()) as directory:
                 path = os.path.join(directory, "state.json")
                 with open(path, "w", encoding="utf-8") as state_file:
                     state_file.write(contents)
-                with patch.object(state_manager, "STATE_FILE", path):
-                    with self.assertRaisesRegex(ValueError, "checkpoint"):
-                        state_manager.load_state()
+                with patch.object(state_manager, "STATE_FILE", path), self.assertRaisesRegex(exception, "checkpoint"):
+                    state_manager.load_state()
 
 
 if __name__ == "__main__":

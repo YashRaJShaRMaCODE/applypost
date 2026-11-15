@@ -1,15 +1,33 @@
-import unittest
 import csv
 import tempfile
+import unittest
 from argparse import ArgumentTypeError
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from main import is_job_related, parse_batch_size, parse_since_date, preview_messages, process_messages, main
 from gmail_service import MAX_UNREAD_MESSAGES, get_unread_messages
+from main import (
+    is_job_related,
+    main,
+    parse_batch_size,
+    parse_since_date,
+    preview_messages,
+    process_messages,
+)
 
 
 class MessageProcessingTests(unittest.TestCase):
+    def test_invalid_checkpoint_stops_before_authentication_or_inbox_access(self):
+        with patch("main.load_state", side_effect=ValueError("checkpoint is invalid")), \
+             patch("main.get_gmail_service") as get_service, \
+             patch("main.get_unread_messages") as get_messages, \
+             patch("main.logger.error") as log_error:
+            main(dry_run=True)
+
+        get_service.assert_not_called()
+        get_messages.assert_not_called()
+        log_error.assert_called_once()
+
     def test_batch_size_parser_enforces_gmail_request_bounds(self):
         self.assertEqual(parse_batch_size("1"), 1)
         self.assertEqual(parse_batch_size(str(MAX_UNREAD_MESSAGES)), MAX_UNREAD_MESSAGES)

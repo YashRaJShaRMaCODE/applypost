@@ -15,7 +15,7 @@ def load_state():
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError("JobMail checkpoint is unreadable; preserve and repair data/state.json before retrying.") from exc
     if not isinstance(saved, dict):
-        raise ValueError("JobMail checkpoint must be a JSON object; preserve and repair data/state.json before retrying.")
+        raise TypeError("JobMail checkpoint must be a JSON object; preserve and repair data/state.json before retrying.")
 
     state = {}
     for key in ("processed_ids", "pending_ids"):

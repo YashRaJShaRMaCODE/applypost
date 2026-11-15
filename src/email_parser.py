@@ -1,6 +1,7 @@
 import base64
-from bs4 import BeautifulSoup
 from email.utils import parseaddr, parsedate_to_datetime
+
+from bs4 import BeautifulSoup
 
 
 def _get_header(headers, name):
@@ -69,7 +70,7 @@ def parse_email(service, message_id):
     try:
         date = parsedate_to_datetime(date_raw)
         date = date.strftime("%Y-%m-%d %H:%M:%S")
-    except Exception:
+    except (AttributeError, OverflowError, TypeError, ValueError):
         date = date_raw
 
     body = _extract_body(msg['payload'])

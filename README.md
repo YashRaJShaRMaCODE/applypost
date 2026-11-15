@@ -12,6 +12,10 @@ JobMail is a Python automation tool that connects to the **Gmail API** and **Goo
 
 The [JobMail product site](https://yashrajsharmacode.github.io/JobMail-tracker/) is a static overview. Its sample sorter can reveal and copy fictional spreadsheet-ready rows so you can review the output shape; it does not connect to Gmail or Sheets and contains no real email data.
 
+## Paid setup support
+
+JobMail itself runs locally and does not require a subscription. If you want help configuring Gmail/Sheets OAuth, filters, and a safe first preview, request a one-off setup session by email; scope and fee are agreed before work starts. Never email passwords, OAuth tokens, inbox exports, or private messages. No paid customers or revenue are claimed.
+
 It reads real unread emails from a Gmail inbox, intelligently filters job-related emails, extracts structured information, and appends the data into a Google Sheet in an append-only and duplicate-safe manner.
 
 The system is designed to be **idempotent**, meaning running the script multiple times will not create duplicate rows in the spreadsheet.
@@ -247,7 +251,7 @@ Processed email IDs are stored locally:
 - Message ID-based duplicate detection
 - Atomic local checkpoint updates
 - Invalid checkpoints fail closed with a repair hint instead of silently resetting duplicate history
-- Automatic token refresh handling
+- Automatic token refresh; revoked tokens and tokens missing the requested scopes start OAuth again, while temporary refresh failures are surfaced
 - Email marked as read after processing
 - Smart filtering reduces noise
 
@@ -265,9 +269,8 @@ Encountered:
 **Cause:** Reusing tokens created with limited permissions.
 
 **Solution:**
-- Unified Gmail and Sheets scopes
-- Deleted existing `token.json`
-- Forced re-authentication
+- JobMail checks saved OAuth scopes before use and starts the consent flow again when a token is missing a required scope or Google reports `invalid_grant`.
+- Temporary refresh failures are returned instead of opening a new login flow, so network errors do not silently change accounts.
 
 ---
 
