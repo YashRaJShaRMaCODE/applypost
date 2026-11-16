@@ -78,10 +78,6 @@ def is_blocked_sender(sender):
     blocked_keywords = [
         "noreply",
         "newsletter",
-        "linkedin",
-        "internshala",
-        "unstop",
-        "fastweb",
         "beehiiv",
         "academy",
         "alerts"

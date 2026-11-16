@@ -55,8 +55,9 @@ The system intelligently filters emails to log only job-related messages.
 - Sender-based blocking:
   - noreply
   - newsletters
-  - LinkedIn invites
   - promotional mailers
+
+Job platforms such as LinkedIn, Internshala, Unstop and Fastweb are not blocked by brand name; messages from them still need a job-related keyword match.
 
 This transforms the system into a focused **Job Opportunity Tracker** instead of a generic email logger.
 

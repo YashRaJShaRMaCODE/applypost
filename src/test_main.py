@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 from gmail_service import MAX_UNREAD_MESSAGES, get_unread_messages
 from main import (
+    is_blocked_sender,
     is_job_related,
     main,
     parse_batch_size,
@@ -17,6 +18,16 @@ from main import (
 
 
 class MessageProcessingTests(unittest.TestCase):
+    def test_job_platform_senders_are_not_blocked_by_platform_name(self):
+        for sender in (
+            "Recruiter <recruiter@linkedin.com>",
+            "jobs@internshala.com",
+            "opportunities@unstop.com",
+            "jobs@fastweb.com",
+        ):
+            with self.subTest(sender=sender):
+                self.assertFalse(is_blocked_sender(sender))
+
     def test_invalid_checkpoint_stops_before_authentication_or_inbox_access(self):
         with patch("main.load_state", side_effect=ValueError("checkpoint is invalid")), \
              patch("main.get_gmail_service") as get_service, \
