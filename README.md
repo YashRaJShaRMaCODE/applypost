@@ -330,3 +330,7 @@ Run `python -m unittest discover -s src -p 'test_*.py' -v`. These tests use mock
 - Real-world Gmail → Sheets automation pipeline
 
 It simulates a production-style backend automation workflow suitable for CRM ingestion, job tracking systems, and workflow integrations.
+
+## Optional product updates and related products
+
+The static site includes a double-opt-in LeadHub signup and a related-products prompt. Both stay hidden unless the leadhub-url meta tag in site/index.html contains the verified HTTPS origin of the personal LeadHub service. The visitor must check the update consent box; cross-product suggestions require a separate opt-in checkbox. The form sends only email, consent, a site source label and a honeypot field. It never sends Gmail contents, OAuth tokens, job searches or Sheet data. The current URL is blank, so signup and related-product features are not live. Do not enable them until the LeadHub host, sender, privacy notice and unsubscribe flow are verified.

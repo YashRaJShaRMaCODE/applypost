@@ -30,6 +30,8 @@ jobs:
         run: python scripts/check_site.py
       - name: Check demo script syntax
         run: node --check site/app.js
+      - name: Check LeadHub loader
+        run: node --test scripts/test_leadhub_loader.mjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
