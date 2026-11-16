@@ -10,6 +10,7 @@ from main import (
     is_blocked_sender,
     is_job_related,
     main,
+    matching_job_signals,
     parse_batch_size,
     parse_since_date,
     preview_messages,
@@ -56,6 +57,21 @@ class MessageProcessingTests(unittest.TestCase):
         self.assertFalse(is_job_related(email))
         self.assertFalse(is_job_related(email, [""]))
         self.assertTrue(is_job_related(email, ["fellowship"]))
+
+    def test_explain_matches_reports_only_signal_labels_not_message_content(self):
+        email = {
+            "from": "recruiter@private.example",
+            "subject": "Interview invite for candidate@example.com",
+            "content": "Your secret-token-123 assessment is ready.",
+        }
+        self.assertEqual(matching_job_signals(email, [" assessment "]), ("interview", "assessment"))
+        state = {"processed_ids": set(), "pending_ids": set()}
+        with patch("main.parse_email", return_value=email), patch("main.logger.info") as log:
+            preview_messages(Mock(), [{"id": "private-message-id"}], state, explain_matches=True)
+
+        log.assert_called_once_with("Dry-run match signals: %s", "interview, assessment")
+        self.assertNotIn("candidate@example.com", str(log.call_args))
+        self.assertNotIn("secret-token-123", str(log.call_args))
 
     def test_status_reads_checkpoint_without_gmail_authentication(self):
         state = {"processed_ids": {"one", "two"}, "pending_ids": {"three"}}

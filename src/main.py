@@ -49,28 +49,36 @@ def mark_email_as_read(service, message_id):
 
 
 # ✅ Job-related keyword filter
-def is_job_related(email_data, extra_keywords=()):
-    keywords = [
-        "interview",
-        "application",
-        "job",
-        "internship",
-        "hiring",
-        "offer",
-        "shortlisted",
-        "opportunity",
-        "career",
-        "assessment",
-        "position",
-        "role"
-    ]
+JOB_KEYWORDS = (
+    "interview",
+    "application",
+    "job",
+    "internship",
+    "hiring",
+    "offer",
+    "shortlisted",
+    "opportunity",
+    "career",
+    "assessment",
+    "position",
+    "role",
+)
 
+
+def matching_job_signals(email_data, extra_keywords=()):
     combined_text = (
         email_data["subject"] + " " + email_data["content"]
     ).lower()
 
     custom_keywords = [str(keyword).strip().lower() for keyword in extra_keywords]
-    return any(keyword.lower() in combined_text for keyword in (*keywords, *custom_keywords) if keyword)
+    return tuple(dict.fromkeys(
+        keyword for keyword in (*JOB_KEYWORDS, *custom_keywords)
+        if keyword and keyword in combined_text
+    ))
+
+
+def is_job_related(email_data, extra_keywords=()):
+    return bool(matching_job_signals(email_data, extra_keywords))
 
 
 # ✅ Block common newsletter / spam senders
@@ -87,7 +95,9 @@ def is_blocked_sender(sender):
     return any(word in sender for word in blocked_keywords)
 
 
-def preview_messages(gmail_service, messages, state, export_path=None, extra_keywords=()):
+def preview_messages(
+    gmail_service, messages, state, export_path=None, extra_keywords=(), explain_matches=False,
+):
     seen_ids = set()
     matched = filtered = already_processed = pending = blocked_senders = no_job_signal = 0
     with (open(export_path, "w", newline="", encoding="utf-8") if export_path else nullcontext()) as output:
@@ -115,6 +125,8 @@ def preview_messages(gmail_service, messages, state, export_path=None, extra_key
                 no_job_signal += 1
                 continue
             matched += 1
+            if explain_matches:
+                logger.info("Dry-run match signals: %s", ", ".join(matching_job_signals(email_data, extra_keywords)))
             if writer:
                 values = [email_data["from"], email_data["subject"], email_data["date"],
                           email_data["content"][:1000] if STORE_EMAIL_BODY else "", message_id]
@@ -179,7 +191,7 @@ def process_messages(
 
 def main(
     dry_run=False, max_results=10, export_csv=None, since=None,
-    extra_keywords=(), status=False, keep_unread=False,
+    extra_keywords=(), status=False, keep_unread=False, explain_matches=False,
 ):
     if status:
         state = load_state()
@@ -224,7 +236,7 @@ def main(
     if dry_run:
         try:
             matched, filtered, processed, pending, blocked, no_signal = preview_messages(
-                gmail_service, messages, state, export_csv, extra_keywords
+                gmail_service, messages, state, export_csv, extra_keywords, explain_matches
             )
         except OSError as exc:
             logger.error("Could not write CSV export: %s", exc)
@@ -249,6 +261,7 @@ if __name__ == "__main__":
     parser.add_argument("--export-csv", metavar="PATH", help="Save matched dry-run rows to a local CSV file (requires --dry-run).")
     parser.add_argument("--since", type=parse_since_date, metavar="YYYY-MM-DD", help="Scan unread messages received after this date.")
     parser.add_argument("--job-keyword", action="append", default=[], metavar="WORD", help="Also match this job-related word or phrase; may be repeated.")
+    parser.add_argument("--explain-matches", action="store_true", help="In dry-run mode, log only matching keyword labels (not email details).")
     parser.add_argument("--status", action="store_true", help="Show local checkpoint counts without signing in to Gmail.")
     parser.add_argument("--keep-unread", action="store_true", help="Log and checkpoint emails without removing their UNREAD label.")
     parser.add_argument(
@@ -267,4 +280,5 @@ if __name__ == "__main__":
         extra_keywords=arguments.job_keyword,
         status=arguments.status,
         keep_unread=arguments.keep_unread,
+        explain_matches=arguments.explain_matches,
     )
