@@ -1,4 +1,5 @@
 import csv
+import json
 import tempfile
 import unittest
 from argparse import ArgumentTypeError
@@ -182,6 +183,30 @@ class MessageProcessingTests(unittest.TestCase):
         self.assertEqual(events, ["save", "append", "save", "read"])
         self.assertIn("message-1", state["processed_ids"])
         self.assertNotIn("message-1", state["pending_ids"])
+
+    def test_write_receipt_records_outcome_without_email_content(self):
+        state = {"processed_ids": set(), "pending_ids": set()}
+        email = {
+            "from": "private@example.com",
+            "subject": "Interview invite",
+            "date": "2026-01-15 10:00:00",
+            "content": "Confidential message body",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipts.jsonl"
+            with patch("main.parse_email", return_value=email), \
+                 patch("main.append_row"), patch("main.save_state"), \
+                 patch("main.mark_email_as_read"):
+                process_messages(
+                    Mock(), Mock(), [{"id": "message-1"}], state, "sheet", "Sheet1",
+                    receipt_jsonl=path,
+                )
+            receipt = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(receipt["message_id"], "message-1")
+        self.assertEqual(receipt["outcome"], "sheet_row_appended")
+        self.assertIn("recorded_at", receipt)
+        self.assertNotIn("private@example.com", str(receipt))
+        self.assertNotIn("Confidential message body", str(receipt))
 
     def test_keep_unread_logs_and_checkpoints_without_changing_gmail_labels(self):
         state = {"processed_ids": set(), "pending_ids": set()}

@@ -1,9 +1,10 @@
 import argparse
 import csv
+import json
 import os
 import sys
 from contextlib import nullcontext
-from datetime import datetime
+from datetime import UTC, datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -134,9 +135,24 @@ def preview_messages(
     return matched, filtered, already_processed, pending, blocked_senders, no_job_signal
 
 
+def write_receipt(path, message_id, outcome):
+    if not path:
+        return
+    receipt = {
+        "message_id": message_id,
+        "outcome": outcome,
+        "recorded_at": datetime.now(UTC).isoformat(),
+    }
+    try:
+        with open(path, "a", encoding="utf-8") as file:
+            file.write(json.dumps(receipt, ensure_ascii=True) + "\n")
+    except OSError as exc:
+        logger.warning("Could not write local receipt: %s", exc)
+
+
 def process_messages(
     gmail_service, sheets_service, messages, state, spreadsheet_id, sheet_name,
-    store_email_body=False, extra_keywords=(), keep_unread=False,
+    store_email_body=False, extra_keywords=(), keep_unread=False, receipt_jsonl=None,
 ):
     message_ids = []
     seen_ids = set()
@@ -158,6 +174,7 @@ def process_messages(
 
     for msg_id in message_ids:
         if is_processed(state, msg_id):
+            write_receipt(receipt_jsonl, msg_id, "already_processed")
             if not keep_unread:
                 mark_email_as_read(gmail_service, msg_id)
             continue
@@ -168,6 +185,7 @@ def process_messages(
                 mark_email_as_read(gmail_service, msg_id)
             mark_processed(state, msg_id)
             save_state(state)
+            write_receipt(receipt_jsonl, msg_id, "filtered")
             continue
 
         if msg_id not in state["pending_ids"]:
@@ -184,6 +202,7 @@ def process_messages(
         mark_processed(state, msg_id)
         clear_pending(state, msg_id)
         save_state(state)
+        write_receipt(receipt_jsonl, msg_id, "sheet_row_appended")
         logger.info("Logged a job email")
         if not keep_unread:
             mark_email_as_read(gmail_service, msg_id)
@@ -192,6 +211,7 @@ def process_messages(
 def main(
     dry_run=False, max_results=10, export_csv=None, since=None,
     extra_keywords=(), status=False, keep_unread=False, explain_matches=False,
+    receipt_jsonl=None,
 ):
     if status:
         state = load_state()
@@ -251,6 +271,7 @@ def main(
     process_messages(
         gmail_service, sheets_service, messages, state,
         SPREADSHEET_ID, SHEET_NAME, STORE_EMAIL_BODY, extra_keywords, keep_unread,
+        receipt_jsonl,
     )
     logger.info("🎉 Processing completed successfully.")
 
@@ -264,6 +285,7 @@ if __name__ == "__main__":
     parser.add_argument("--explain-matches", action="store_true", help="In dry-run mode, log only matching keyword labels (not email details).")
     parser.add_argument("--status", action="store_true", help="Show local checkpoint counts without signing in to Gmail.")
     parser.add_argument("--keep-unread", action="store_true", help="Log and checkpoint emails without removing their UNREAD label.")
+    parser.add_argument("--receipt-jsonl", metavar="PATH", help="Append per-message outcome receipts (message IDs only; no email content).")
     parser.add_argument(
         "--limit",
         type=parse_batch_size,
@@ -281,4 +303,5 @@ if __name__ == "__main__":
         status=arguments.status,
         keep_unread=arguments.keep_unread,
         explain_matches=arguments.explain_matches,
+        receipt_jsonl=arguments.receipt_jsonl,
     )
