@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m unittest discover -s src -p 'test_*.py' -v
+      - run: ruff check src scripts
+      - run: python -m compileall -q src scripts
+      - run: python src/main.py --replay-demo --explain-matches
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node --test scripts/test_leadhub_loader.mjs
+      - run: node --check site/app.js

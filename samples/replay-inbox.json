@@ -1,0 +1,44 @@
+[
+  {
+    "id": "demo-interview-001",
+    "payload": {
+      "mimeType": "text/plain",
+      "headers": [
+        { "name": "From", "value": "Talent Team <talent@example.test>" },
+        { "name": "Subject", "value": "Interview invitation" },
+        { "name": "Date", "value": "Mon, 16 Nov 2026 10:00:00 +0000" }
+      ],
+      "body": {
+        "data": "SGVsbG8sIHdlJ2QgbGlrZSB0byBzY2hlZHVsZSBhbiBpbnRlcnZpZXcgbmV4dCB3ZWVrLiBQbGVhc2UgY2hvb3NlIGEgdGltZSB1c2luZyB0aGUgbGluay4"
+      }
+    }
+  },
+  {
+    "id": "demo-newsletter-002",
+    "payload": {
+      "mimeType": "text/plain",
+      "headers": [
+        { "name": "From", "value": "Weekly Newsletter <newsletter@example.test>" },
+        { "name": "Subject", "value": "Job opportunities digest" },
+        { "name": "Date", "value": "Mon, 16 Nov 2026 11:00:00 +0000" }
+      ],
+      "body": {
+        "data": "VGhpcyB3ZWVrbHkgbmV3c2xldHRlciBjb3ZlcnMgam9iIG9wZW5pbmdzLCBjYXJlZXIgYWR2aWNlLCBhbmQgbmV3IGFwcGxpY2F0aW9uIHRpcHMu"
+      }
+    }
+  },
+  {
+    "id": "demo-security-003",
+    "payload": {
+      "mimeType": "text/plain",
+      "headers": [
+        { "name": "From", "value": "Account Updates <updates@example.test>" },
+        { "name": "Subject", "value": "Account security notice" },
+        { "name": "Date", "value": "Mon, 16 Nov 2026 12:00:00 +0000" }
+      ],
+      "body": {
+        "data": "WW91ciBhY2NvdW50IHNlY3VyaXR5IHNldHRpbmdzIHdlcmUgY2hhbmdlZC4gUmV2aWV3IHRoaXMgbm90aWNlIGluIHlvdXIgYWNjb3VudC4"
+      }
+    }
+  }
+]

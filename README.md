@@ -171,6 +171,8 @@ The normal run uses `gmail.modify` because it marks processed messages as read. 
 
 ```bash
 python src/main.py --dry-run
+python src/main.py --replay-demo
+python src/main.py --replay-demo --explain-matches
 python src/main.py --dry-run --export-csv jobmail-preview.csv
 python src/main.py --dry-run --since 2026-11-01 --job-keyword fellowship
 python src/main.py --dry-run --explain-matches
@@ -181,6 +183,8 @@ python src/main.py
 ```
 
 Each command scans up to 10 unread Inbox messages by default. Pass `--limit N` to choose a per-run batch from 1 to 500, for example `python src/main.py --dry-run --limit 100`. A larger limit processes more messages in one run; the normal run still uses `gmail.modify` and can mark processed messages as read.
+
+`--replay-demo` runs the real parser and filters against three bundled synthetic Gmail-shaped messages. It does not open OAuth, contact Gmail or Sheets, or read/write the local checkpoint. The sample includes one interview invite, one newsletter, and one unrelated notice. It is safe for first-run setup checks; the normal `--dry-run` still reads the user's inbox.
 
 Use the preview first to see match counts before enabling spreadsheet writes and marking processed email as read. Add `--export-csv PATH` to save only matched rows from that read-only preview in spreadsheet-ready CSV format. Message bodies stay blank unless `STORE_EMAIL_BODY=true`; the CSV can contain sender and subject details, so keep it private and do not commit it. CSV formula-like values are escaped for spreadsheet safety.
 

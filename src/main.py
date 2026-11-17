@@ -5,6 +5,7 @@ import os
 import sys
 from contextlib import nullcontext
 from datetime import UTC, datetime
+from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -64,6 +65,63 @@ JOB_KEYWORDS = (
     "position",
     "role",
 )
+REPLAY_FIXTURE_PATH = Path(__file__).resolve().parents[1] / "samples" / "replay-inbox.json"
+
+
+class _ReplayRequest:
+    def __init__(self, message):
+        self.message = message
+
+    def execute(self):
+        return self.message
+
+
+class _ReplayGmailService:
+    """Read-only in-memory substitute for the Gmail message lookup used by the parser."""
+
+    def __init__(self, messages):
+        self._messages = {message["id"]: message for message in messages}
+
+    def users(self):
+        return self
+
+    def messages(self):
+        return self
+
+    def get(self, userId, id, format):
+        if userId != "me" or format != "full" or id not in self._messages:
+            raise ValueError("Replay requested an unknown local sample message.")
+        return _ReplayRequest(self._messages[id])
+
+
+def run_replay_demo(max_results=10, export_csv=None, extra_keywords=(), explain_matches=False):
+    """Run the parser and filters against synthetic messages without OAuth or checkpoint access."""
+    with REPLAY_FIXTURE_PATH.open(encoding="utf-8") as fixture:
+        messages = json.load(fixture)
+    if not isinstance(messages, list) or any(
+        not isinstance(message, dict)
+        or not isinstance(message.get("id"), str)
+        or not isinstance(message.get("payload"), dict)
+        for message in messages
+    ):
+        raise ValueError("The bundled replay fixture has an invalid structure.")
+    messages = messages[:max_results]
+    state = {"processed_ids": set(), "pending_ids": set()}
+    result = preview_messages(
+        _ReplayGmailService(messages),
+        messages,
+        state,
+        export_csv,
+        extra_keywords,
+        explain_matches,
+    )
+    matched, filtered, *_ = result
+    logger.info(
+        "Fake-inbox replay: %d matched, %d filtered. Synthetic messages only; no Gmail, Sheets, OAuth, or checkpoint was accessed.",
+        matched,
+        filtered,
+    )
+    return result
 
 
 def matching_job_signals(email_data, extra_keywords=()):
@@ -211,8 +269,20 @@ def process_messages(
 def main(
     dry_run=False, max_results=10, export_csv=None, since=None,
     extra_keywords=(), status=False, keep_unread=False, explain_matches=False,
-    receipt_jsonl=None,
+    receipt_jsonl=None, replay_demo=False,
 ):
+    if replay_demo:
+        if status or keep_unread or receipt_jsonl or since:
+            logger.error("--replay-demo cannot be combined with --status, --keep-unread, --receipt-jsonl, or --since.")
+            return
+        if not 1 <= max_results <= MAX_UNREAD_MESSAGES:
+            logger.error("Message limit must be between 1 and %d.", MAX_UNREAD_MESSAGES)
+            return
+        try:
+            return run_replay_demo(max_results, export_csv, extra_keywords, explain_matches)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            logger.error("Could not run the local replay: %s", exc)
+            return
     if status:
         state = load_state()
         logger.info("Local checkpoint: %d processed, %d pending reconciliation items.",
@@ -286,6 +356,7 @@ if __name__ == "__main__":
     parser.add_argument("--status", action="store_true", help="Show local checkpoint counts without signing in to Gmail.")
     parser.add_argument("--keep-unread", action="store_true", help="Log and checkpoint emails without removing their UNREAD label.")
     parser.add_argument("--receipt-jsonl", metavar="PATH", help="Append per-message outcome receipts (message IDs only; no email content).")
+    parser.add_argument("--replay-demo", action="store_true", help="Run synthetic inbox messages through the parser without OAuth, Gmail, Sheets, or checkpoint access.")
     parser.add_argument(
         "--limit",
         type=parse_batch_size,
@@ -304,4 +375,5 @@ if __name__ == "__main__":
         keep_unread=arguments.keep_unread,
         explain_matches=arguments.explain_matches,
         receipt_jsonl=arguments.receipt_jsonl,
+        replay_demo=arguments.replay_demo,
     )

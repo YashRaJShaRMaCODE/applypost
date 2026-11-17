@@ -16,10 +16,37 @@ from main import (
     parse_since_date,
     preview_messages,
     process_messages,
+    run_replay_demo,
 )
 
 
 class MessageProcessingTests(unittest.TestCase):
+    def test_replay_demo_uses_synthetic_messages_without_auth_or_checkpoint(self):
+        with patch("main.get_gmail_service", side_effect=AssertionError("Gmail must not be reached")), \
+             patch("main.get_sheets_service", side_effect=AssertionError("Sheets must not be reached")), \
+             patch("main.load_state", side_effect=AssertionError("checkpoint must not be read")), \
+             patch("main.logger.info"):
+            result = run_replay_demo()
+
+        self.assertEqual(result, (1, 2, 0, 0, 1, 1))
+
+    def test_replay_demo_exports_only_the_synthetic_match_and_keeps_body_blank(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "replay.csv"
+            with patch("main.STORE_EMAIL_BODY", False), patch("main.logger.info"):
+                run_replay_demo(export_csv=path)
+            with path.open(newline="", encoding="utf-8") as file:
+                rows = list(csv.reader(file))
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1][1:], ["Interview invitation", "2026-11-16 10:00:00", "", "demo-interview-001"])
+
+    def test_replay_demo_rejects_gmail_side_effect_flags(self):
+        with patch("main.logger.error") as log_error, patch("main.get_gmail_service") as get_service:
+            main(replay_demo=True, keep_unread=True)
+        log_error.assert_called_once()
+        get_service.assert_not_called()
+
     def test_job_platform_senders_are_not_blocked_by_platform_name(self):
         for sender in (
             "Recruiter <recruiter@linkedin.com>",

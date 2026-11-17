@@ -22,6 +22,7 @@ flowchart LR
 - `src/state_manager.py` stores processed/pending Gmail IDs locally using atomic replacement.
 - `config.py` and `.env.example` hold non-secret configuration names. OAuth credentials and tokens stay local and must never be committed.
 - Email bodies are not written to Sheets or CSV by default. `--explain-matches` logs only keyword labels and is available only as an option during dry-run.
+- `--replay-demo` runs the same parser/filter against bundled fictional Gmail-shaped messages using an in-memory read-only adapter. It returns before OAuth, Gmail, Sheets, or local checkpoint access.
 
 ## ADR-001: local-first Gmail to user-owned Sheets
 
